@@ -1,3 +1,6 @@
+# Author: Jichao Sun (jichaos@andrew.cmu.edu) 
+# Date: April 26, 2016 
+
 from indeed import IndeedClient
 
 jichaoID = 278720823964828
