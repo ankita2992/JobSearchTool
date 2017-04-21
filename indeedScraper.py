@@ -6,9 +6,11 @@
 
 from bs4 import BeautifulSoup
 from indeed import IndeedClient
-
+import pprint
 #import threading, urllib2
-import urllib, urllib2, re
+#import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, re
+import urllib,urllib2, re
+import json
 
 jichaoID = 278720823964828
 client = IndeedClient(publisher = jichaoID)
@@ -23,7 +25,7 @@ def getRawJobs(what, where, count, jobType, radius, salary):
     results = []
 
     params = {
-        'q' : what+"+$"+salary,              # Job keywords
+        'q' : what+"+$"+salary,  # Job keywords
         'l' : where,             # Location as a string,
         'jt' : jobType,          # Type of job, fulltime parttime contract etc...
         'radius' : radius,       # Radius in miles
@@ -50,40 +52,38 @@ def getRawJobs(what, where, count, jobType, radius, salary):
                     "url",                    # Indeed URL
                     "snippet",                # Short Description
                     "formattedLocationFull",  # Full Location
-                    "formattedRelativeTime"]# Posted # of days ago
-                     
+                    "formattedRelativeTime"]  # Posted # of days ago
+
     # Extract only wanted fields
-    results = map(lambda job: {k: job[k].encode('utf8') for k in wantedFields}, results)
+    results = [{k: job[k] for k in wantedFields} for job in results]
+    rawJobs = json.dumps(results)
+	
+    return rawJobs
 
-
-    # Remove qd tags and publisher ID from indeed url
-    for job in results:
-        job["url"] =  job["url"].split("&", 1)[0]
-    
-    return list(results)
-
+	
+	
 salaryBaseURL = "http://www.indeed.com/salary?q1="
 def getJobSalaries(jobs):
     for j in jobs:
         # Jobs from gateway has a number attached, remove if exists
         originalTitle = j["jobtitle"]
-        cleanTitle = filter(lambda x: not x.isdigit(), originalTitle)
+        cleanTitle = [x for x in originalTitle if not x.isdigit()]
         
         # Build a url to request salary of a title and location
-        title = urllib.quote_plus(cleanTitle)
-        loc = urllib.quote_plus(j["formattedLocationFull"])
+        title = urllib.parse.quote_plus(cleanTitle)
+        loc = urllib.parse.quote_plus(j["formattedLocationFull"])
         salaryURL = salaryBaseURL + title + "&l1=" + loc
 
         # Download page, then find and save the salary.
         page = None
         while page == None:
             try:
-                page = urllib2.urlopen(salaryURL)
+                page = urllib.request.urlopen(salaryURL)
                 soup = BeautifulSoup(page)
                 salary = soup.find("span", {"class" : "salary"}).text
                 j["salary"] = salary
-            except urllib2.HTTPError:
-                print salaryURL
+            except urllib.error.HTTPError:
+                print(salaryURL)
             
 
 # def getJobDescriptions(rawJobs):
